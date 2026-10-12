@@ -1,1 +1,577 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Oefentool MVK — actieve terugroeping over stroomschema RI&amp;E, risico's van derden en de handreiking bedrijfshulpverlening.">
+<meta name="theme-color" content="#E4E7E7">
+<title>MVK Oefentool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314181C'/%3E%3Cpath d='M0 0h32v32H0z' fill='none'/%3E%3Cg fill='%23F5C400'%3E%3Cpath d='M-8 24L24-8l6 6L-2 30z'/%3E%3Cpath d='M8 40L40 8l6 6L14 46z'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#14181C; --paper:#E4E7E7; --card:#FFFFFF; --line:#C3C7C9;
+    --soft:#6B7378; --green:#0B8A3D; --red:#C8102E; --blue:#14509B; --yellow:#F5C400;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:560px;margin:0 auto;min-height:100vh;min-height:100dvh;background:var(--paper);}
+  button{font:inherit;border-radius:0;cursor:pointer;}
+  button:focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--soft);font-weight:500;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .disp{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-weight:600;line-height:1.05;}
+  .knop{width:100%;padding:13px 20px;font-family:'Barlow Condensed',sans-serif;font-size:18px;
+    font-weight:600;letter-spacing:.06em;text-transform:uppercase;line-height:1.1;}
+  .k-primair{background:var(--ink);color:#fff;border:2px solid var(--ink);}
+  .k-rand{background:transparent;color:var(--ink);border:2px solid var(--ink);}
+  .k-stil{background:transparent;color:var(--soft);border:2px solid transparent;}
+  .k-goed{background:var(--green);color:#fff;border:2px solid var(--green);}
+  .k-fout{background:var(--red);color:#fff;border:2px solid var(--red);}
+  .k-uit{opacity:.4;cursor:default;}
+  .deckknop{display:block;width:100%;text-align:left;background:var(--card);
+    border:1px solid var(--line);padding:16px 18px;}
+  .optie{text-align:left;background:var(--card);border:1.5px solid var(--line);color:var(--ink);
+    padding:13px 15px;font-size:15px;line-height:1.4;display:flex;gap:11px;width:100%;
+    font-family:'IBM Plex Sans',sans-serif;}
+  .optie[disabled]{cursor:default;}
+  .band{height:14px;background:#D2D6D7;border:1px solid var(--line);overflow:hidden;}
+  .band > i{display:block;height:100%;width:0;
+    background-image:repeating-linear-gradient(-45deg,var(--yellow) 0 10px,var(--ink) 10px 20px);
+    transition:width 340ms cubic-bezier(.2,.8,.2,1);}
+  .link{background:none;border:none;color:var(--soft);font-size:13px;text-decoration:underline;
+    font-family:'IBM Plex Sans',sans-serif;padding:0;}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
 
+<script>
+/* ==================================================================
+   MVK Oefentool — standalone. Geen build, geen server, geen netwerk
+   nodig behalve de lettertypen. Voortgang in localStorage.
+   ================================================================== */
+
+var DECKS = {
+  rie:    { code:"01", naam:"Stroomschema RI&E",     kleur:"#14509B", sub:"Getallen en grenswaarden" },
+  derden: { code:"02", naam:"Risico's van derden",   kleur:"#F5C400", sub:"Beheersmaatregelen en gezag" },
+  bhv:    { code:"03", naam:"Handreiking BHV",       kleur:"#0B8A3D", sub:"Taken, stappen, afbakening" }
+};
+
+var VRAGEN = [
+/* ---------------- 01 STROOMSCHEMA RI&E ---------------- */
+{ id:"r1", deck:"rie", type:"mc",
+  v:"Tot hoeveel uur arbeid per week mag een werkgever de verkorte Checklist Gezondheidsrisico's gebruiken?",
+  opties:["Ten hoogste 20 uur per week","Ten hoogste 40 uur per week","Ten hoogste 25 uur per werknemer","Ten hoogste 40 uur per werknemer"],
+  juist:1,
+  uitleg:"Ten hoogste 40 uur per week, van alle werknemers bij elkaar opgeteld. Het is dus geen norm per werknemer." },
+{ id:"r2", deck:"rie", type:"mc",
+  v:"Tellen uitzendkrachten, stagiaires en flexwerkers mee bij de 40-urengrens?",
+  opties:["Nee, alleen werknemers met een arbeidsovereenkomst","Alleen uitzendkrachten tellen mee","Ja, alle drie tellen mee","Alleen als zij langer dan drie maanden blijven"],
+  juist:2,
+  uitleg:"Alle uren worden bij elkaar opgeteld, inclusief uitzendkrachten, stagiaires en flexwerkers." },
+{ id:"r3", deck:"rie", type:"recall",
+  v:"Het stroomschema stelt bij ten hoogste 40 uur: 'U hoeft geen RI&E op te stellen.' Waarom is die formulering onjuist?",
+  antwoord:"De RI&E-plicht blijft bestaan. Alleen de vorm wordt lichter: u mag de verkorte Checklist Gezondheidsrisico's gebruiken, en toetsing vervalt. De verplichting zelf vervalt niet.",
+  uitleg:"Klassieke valkuil. De checklist is de RI&E, in verkorte vorm — geen alternatief voor de RI&E." },
+{ id:"r4", deck:"rie", type:"mc",
+  v:"Boven welk aantal werknemers moet de RI&E in beginsel altijd worden getoetst?",
+  opties:["Meer dan 10","Meer dan 15","Meer dan 25","Meer dan 50"],
+  juist:2,
+  uitleg:"Meer dan 25 werknemers: toetsing door een gecertificeerde arbodienst of kerndeskundige." },
+{ id:"r5", deck:"rie", type:"recall",
+  v:"Onder welke twee voorwaarden geldt vrijstelling van toetsing voor een klein bedrijf?",
+  antwoord:"1) Ten hoogste 25 werknemers in dienst, en 2) gebruik van een erkend branche-RI&E-instrument dat daadwerkelijk op de eigen branche ziet.",
+  uitleg:"Beide voorwaarden moeten tegelijk zijn vervuld. Een erkend instrument van een andere branche geeft geen vrijstelling." },
+{ id:"r6", deck:"rie", type:"mc",
+  v:"Een bedrijf heeft 18 werknemers en gebruikt het erkende branche-instrument van de eigen sector. Moet de RI&E worden getoetst?",
+  opties:["Ja, iedere RI&E moet getoetst worden","Nee, vrijstelling van toetsing","Alleen het plan van aanpak moet getoetst worden","Alleen als er meer dan 40 uur per week wordt gewerkt"],
+  juist:1,
+  uitleg:"25 of minder werknemers plus een erkend branche-instrument geeft vrijstelling van toetsing." },
+{ id:"r7", deck:"rie", type:"recall",
+  v:"Wie mag de RI&E toetsen?",
+  antwoord:"Een gecertificeerde arbodienst of een gecertificeerde kerndeskundige.",
+  uitleg:"Let op de vier kerndeskundigen: veiligheidskundige, arbeidshygiënist, A&O-deskundige en bedrijfsarts." },
+{ id:"r8", deck:"rie", type:"recall",
+  v:"Welk document is een onlosmakelijk onderdeel van de RI&E, en wordt in het stroomschema als vierde stap genoemd?",
+  antwoord:"Het plan van aanpak. Het schema vraagt vervolgens of de afspraken daaruit ook daadwerkelijk zijn opgevolgd.",
+  uitleg:"Een RI&E zonder plan van aanpak is niet compleet: inventariseren, evalueren en maatregelen vastleggen." },
+{ id:"r9", deck:"rie", type:"mc",
+  v:"In welk artikel van de Arbowet staat de verplichting tot de RI&E en het plan van aanpak?",
+  opties:["Artikel 3","Artikel 5","Artikel 8","Artikel 15"],
+  juist:1,
+  uitleg:"Artikel 5 Arbowet. Artikel 3 is het arbobeleid, artikel 8 de voorlichting, artikel 15 de bedrijfshulpverlening." },
+{ id:"r10", deck:"rie", type:"recall",
+  v:"Welk recht heeft de ondernemingsraad of personeelsvertegenwoordiging ten aanzien van de RI&E?",
+  antwoord:"Instemmingsrecht.",
+  uitleg:"Grondslag: artikel 27 WOR. De RI&E en het plan van aanpak worden binnen het bedrijf besproken." },
+{ id:"r11", deck:"rie", type:"recall",
+  v:"Wanneer moet een RI&E worden herzien?",
+  antwoord:"Zodra de arbeidsomstandigheden of risico's wijzigen: nieuwe machines, processen of stoffen, een verbouwing, een reorganisatie. De RI&E moet doorlopend actueel zijn.",
+  uitleg:"Er staat geen vaste termijn in de wet. 'Actueel' is het criterium, niet 'jaarlijks'." },
+{ id:"r12", deck:"rie", type:"mc",
+  v:"Een zzp'er laat één stagiair onder zijn gezag werken. Is hij RI&E-plichtig?",
+  opties:["Nee, een zzp'er is geen werkgever","Nee, een stagiair telt niet mee","Ja, wie een ander onder zijn gezag arbeid laat verrichten is werkgever","Alleen als de stagiair betaald wordt"],
+  juist:2,
+  uitleg:"Het gezagscriterium bepaalt het werkgeverschap, niet de arbeidsovereenkomst of de beloning." },
+
+/* ---------------- 02 RISICO'S VAN DERDEN ---------------- */
+{ id:"d1", deck:"derden", type:"recall",
+  v:"Noem de keten van beheersmaatregelen voor derden, in chronologische volgorde.",
+  antwoord:"Vóór selectie: contractorbeoordeling. Vóór toegang: poortinstructie met toets. Vóór de klus: werkvergunning (PTW) bij risicovol werk. Op de werkplek: LMRA. Tijdens: toezicht en dagelijkse attitude.",
+  uitleg:"Onthoud het als tijdlijn, niet als losse opsomming — dan is de volgorde vanzelf de ezelsbrug." },
+{ id:"d2", deck:"derden", type:"recall",
+  v:"Welke gegevens vraagt u op bij de selectie van een contractor?",
+  antwoord:"Ongevalscijfers en ongevalsmeldingen, aantal veiligheidsinspecties, ziekteverzuim, verdeling van taken en verantwoordelijkheden op veiligheidsgebied, scholing en voorlichting, en de eigen RI&E. Daarmee bepaalt u ook de positie op de veiligheidscultuurladder.",
+  uitleg:"De selectiefase is de goedkoopste plek om risico te sturen." },
+{ id:"d3", deck:"derden", type:"mc",
+  v:"Wat is een LMRA?",
+  opties:["Een periodieke lijnmanagement-risicoanalyse","Een laatste minuut risicoanalyse op de werkplek, vlak voor aanvang","Een lijst met minimale risicoaanvaarding","Een verplichte toets na de poortinstructie"],
+  juist:1,
+  uitleg:"Vlak vóór het begin van de klus, op de werkplek zelf. Alleen zinvol als de leiding er zichtbaar waarde aan hecht." },
+{ id:"d4", deck:"derden", type:"recall",
+  v:"Wat is het risico als een opdrachtgever de opdrachtnemer te sterk aanstuurt en toezicht houdt?",
+  antwoord:"Dan werkt de opdrachtnemer 'onder zijn gezag' en wordt de opdrachtgever werkgever in de zin van artikel 1 Arbowet, met alle werkgeversverplichtingen van dien.",
+  uitleg:"Daar zit de spanning: goed toezicht is gewenst, maar te veel sturing verschuift de aansprakelijkheid." },
+{ id:"d5", deck:"derden", type:"recall",
+  v:"Waarom is een poortinstructie zonder afsluitende toets veel minder waard?",
+  antwoord:"Zonder toets is niet geverifieerd of de derde de boodschap werkelijk heeft begrepen. Bij onvoldoende resultaat moet de instructie opnieuw worden gevolgd.",
+  uitleg:"Na een voldoende volgt een toegangsbewijs, doorgaans 1 tot 2 jaar geldig." },
+{ id:"d6", deck:"derden", type:"mc",
+  v:"Wat is de belangrijkste beperking van een poortinstructie?",
+  opties:["Hij duurt te lang","Hij is algemeen van aard en vaak ontoereikend voor de specifieke werkplek","Hij mag alleen door de arbodienst worden gegeven","Hij is wettelijk niet toegestaan voor stagiairs"],
+  juist:1,
+  uitleg:"Daarom is de LMRA op de werkplek zelf het noodzakelijke sluitstuk." },
+{ id:"d7", deck:"derden", type:"recall",
+  v:"Welke drie verplichtingen heeft het inlenende bedrijf vóór plaatsing van een uitzendkracht of stagiair?",
+  antwoord:"1) Op basis van de RI&E de werkplekken waar zij komen te werken op risico's onderzoeken. 2) Doelgerichte voorlichting en instructie geven. 3) Bij uitzendkrachten: de RI&E toesturen aan het uitzendbureau.",
+  uitleg:"In de praktijk gaat het mis doordat inlener en uitzendbureau beiden aannemen dat de ander de instructie verzorgt." },
+{ id:"d8", deck:"derden", type:"mc",
+  v:"Een uitzendkracht raakt gewond doordat werkplekspecifieke instructie ontbrak. Wie spreekt de Arbeidsinspectie aan?",
+  opties:["Het uitzendbureau","Het inlenende bedrijf","De uitzendkracht zelf","Beide partijen in gelijke mate"],
+  juist:1,
+  uitleg:"De inlener kan zich niet verschuilen achter een algemene instructie van het uitzendbureau." },
+{ id:"d9", deck:"derden", type:"recall",
+  v:"Welke kritiek plaatst het artikel bij VCA als borgingsinstrument?",
+  antwoord:"Het is slechts een beperkte basistraining, en de herhalingstraining volgt pas na tien jaar. De vraag is wat er dan nog is blijven hangen. Dagelijkse attitude, voorlichting en toezicht zijn belangrijker.",
+  uitleg:"Een certificaat is een momentopname, geen bewijs van veilig gedrag." },
+{ id:"d10", deck:"derden", type:"recall",
+  v:"Wanneer ligt de zorg voor goede werkomstandigheden bij de eigen leidinggevende van de gedetacheerde, en waarvoor blijft de inlener dan toch verantwoordelijk?",
+  antwoord:"Als de eigen organisatie de dagelijkse aansturing, de voorlichting en het toezicht verzorgt, ligt de zorg daar. De inlener blijft verantwoordelijk dat zijn materialen, machines en installaties veilig zijn en goed worden onderhouden.",
+  uitleg:"De verantwoordelijkheid volgt het gezag, maar het materieel blijft van de inlener." },
+{ id:"d11", deck:"derden", type:"recall",
+  v:"Wat is de les van het voorbeeld met de tweekoppige filmploeg die verplicht 45 minuten poortinstructie moest volgen?",
+  antwoord:"Maatregelen voor derden moeten proportioneel zijn, zowel qua omvang als qua specificiteit, in verhouding tot het risico. Te strikte toepassing schiet het doel voorbij en kan bij het management zelfs een allergie tegen veiligheid opwekken.",
+  uitleg:"De ploeg zou permanent begeleid worden en geen seconde alleen zijn — het restrisico was nihil." },
+{ id:"d12", deck:"derden", type:"mc",
+  v:"Hoe kunnen derden een risico vormen voor het eigen personeel?",
+  opties:["Door hun aanwezigheid alleen al","Doordat zij bijvoorbeeld hun werkgebied niet afzetten, waardoor eigen personeel eronderdoor of erdoorheen loopt","Doordat zij geen VCA-certificaat hebben","Doordat zij niet onder de RI&E vallen"],
+  juist:1,
+  uitleg:"Onveilig gedrag van derden werkt door op de eigen organisatie; daarom is het geen zaak van de derde alleen." },
+
+/* ---------------- 03 HANDREIKING BHV ---------------- */
+{ id:"b1", deck:"bhv", type:"recall",
+  v:"Noem de drie wettelijke taken van de bedrijfshulpverlener.",
+  antwoord:"a) Het verlenen van eerste hulp bij ongevallen. b) Het beperken en bestrijden van brand en het beperken van de gevolgen van ongevallen. c) Het in noodsituaties alarmeren en evacueren van alle werknemers en andere personen in het bedrijf of de inrichting.",
+  uitleg:"Let op 'en andere personen' — de taak strekt zich uit tot bezoekers en derden." },
+{ id:"b2", deck:"bhv", type:"mc",
+  v:"In welk artikel van de Arbowet is de deskundige bijstand op het gebied van bedrijfshulpverlening geregeld?",
+  opties:["Artikel 5","Artikel 8","Artikel 13","Artikel 15"],
+  juist:3,
+  uitleg:"Artikel 15 Arbowet. Artikel 13 gaat over de deskundige bijstand in het algemeen, de preventiemedewerker." },
+{ id:"b3", deck:"bhv", type:"mc",
+  v:"Waaruit volgt het aantal bhv'ers dat een werkgever moet aanwijzen?",
+  opties:["Uit een vaste norm van 1 op 50 werknemers","Uit de RI&E: het is maatwerk","Uit NEN 8112","Uit het Bouwbesluit"],
+  juist:1,
+  uitleg:"Er bestaat geen blauwdruk. Aantal, opleiding en uitrusting vloeien voort uit de RI&E." },
+{ id:"b4", deck:"bhv", type:"recall",
+  v:"Noem de zes stappen van RI&E naar een effectieve bhv-organisatie.",
+  antwoord:"1) Bepaal restrisico's en maatgevende factoren vanuit de RI&E. 2) Toets of het bedrijf voldoet aan de relevante wet- en regelgeving en aan eisen van verzekeraars en afnemers. 3) Stel incidentscenario's op. 4) Bepaal de benodigde bhv-organisatie. 5) Leg de bhv-organisatie vast in een plan. 6) Borg de bhv.",
+  uitleg:"De kern: de RI&E is het vertrekpunt, borging het sluitstuk." },
+{ id:"b5", deck:"bhv", type:"recall",
+  v:"Wat is een restrisico in de zin van de handreiking?",
+  antwoord:"Een risico waarvoor preventieve maatregelen niet mogelijk of niet haalbaar zijn, of dat zich ondanks preventieve maatregelen toch kan voordoen. Op restrisico's moet de bhv voorbereid zijn.",
+  uitleg:"Dit is de aansluiting op de arbeidshygiënische strategie: wat na de maatregelen overblijft." },
+{ id:"b6", deck:"bhv", type:"mc",
+  v:"Welke Europese richtlijn ligt ten grondslag aan de verplichtingen rond eerste hulp, brandbestrijding en evacuatie?",
+  opties:["Richtlijn 89/654/EEG","Richtlijn 89/391/EEG","Richtlijn 98/24/EG","Richtlijn 2009/104/EG"],
+  juist:1,
+  uitleg:"De kaderrichtlijn 89/391/EEG. De andere zijn bijzondere richtlijnen daaronder." },
+{ id:"b7", deck:"bhv", type:"recall",
+  v:"Voor welke zes categorieën geldt de handreiking uitdrukkelijk niet?",
+  antwoord:"De bouw; de mijnbouw en winningsindustrie; defensie; bedrijven onder het Besluit risico's zware ongevallen 1999 (Brzo); bedrijven met een verplichte bedrijfsbrandweer op grond van de Wet op de veiligheidsregio's; werk op vaartuigen en in luchtvaartuigen.",
+  uitleg:"Voor deze categorieën gelden specifieke omstandigheden en eigen voorschriften." },
+{ id:"b8", deck:"bhv", type:"mc",
+  v:"Is toepassing van NEN 8112 verplicht?",
+  opties:["Ja, voor ieder bedrijf","Ja, boven 50 werknemers","Nee, gebruik is vrijwillig op grond van de Arbowet, maar kan via andere wetgeving verplicht worden","Nee, de norm is ingetrokken"],
+  juist:2,
+  uitleg:"Vrijwillig onder de Arbowet. Andere regelgeving of een vergunning kan de norm alsnog dwingend maken." },
+{ id:"b9", deck:"bhv", type:"mc",
+  v:"Op welk type branches richt de handreiking zich vooral?",
+  opties:["Grote industriële bedrijven","Het mkb en branches met relatief lage brand- en ongevalsrisico's","Zorginstellingen","Bedrijven met een eigen bedrijfsbrandweer"],
+  juist:1,
+  uitleg:"Complexere bedrijven met hogere risico's worden verwezen naar NEN 8112, AI-10 en het kennisdocument over brandrisico's." },
+{ id:"b10", deck:"bhv", type:"recall",
+  v:"Waarop worden bedrijfsspecifieke incidentscenario's gebaseerd?",
+  antwoord:"Op de geïnventariseerde risico's, de maatgevende factoren, informatie over de meest voorkomende ongevallen, en informatie over de meest voorkomende plaatsen waar brand ontstaat.",
+  uitleg:"Betrek zo mogelijk de preventiemedewerker en de OR of PVT bij het opstellen." },
+{ id:"b11", deck:"bhv", type:"recall",
+  v:"Wat bepaalt artikel 3f Arbowet over werknemers bij ernstig en onmiddellijk gevaar?",
+  antwoord:"Iedere werknemer moet, rekening houdend met zijn technische kennis en middelen, de nodige passende maatregelen kunnen nemen om de gevolgen van zulk gevaar te voorkomen.",
+  uitleg:"Dit is een werkgeversplicht om werknemers daartoe in staat te stellen — vandaar voorlichting en instructie." },
+{ id:"b12", deck:"bhv", type:"mc",
+  v:"Welk recht geeft artikel 29 Arbowet de werknemer?",
+  opties:["Het recht op een bhv-opleiding","Het recht het werk te onderbreken bij ernstig en onmiddellijk gevaar wanneer een toezichthouder niet tijdig kan optreden","Het recht de RI&E in te zien","Het recht een eigen arbodienst te kiezen"],
+  juist:1,
+  uitleg:"Het werk stilleggen of onderbreken mag, maar de werknemer moet dit direct melden." },
+{ id:"b13", deck:"bhv", type:"recall",
+  v:"Welke verplichting legt artikel 8 Arbowet de werkgever op met betrekking tot de bhv?",
+  antwoord:"De werkgever moet ervoor zorgen dat werknemers worden voorgelicht over de wijze waarop de bedrijfshulpverlening is georganiseerd.",
+  uitleg:"Ook bezoekers moeten kunnen zien en horen wat zij bij een incident moeten doen." },
+{ id:"b14", deck:"bhv", type:"recall",
+  v:"Wat moet de werkgever regelen voor alleenwerkers?",
+  antwoord:"Vaststellen in welke mate werknemers alleen werken en welke risico's zij lopen, nagaan of alleen werken vermeden kan worden, en zo niet: vastleggen hoe zij bij een incident hulp kunnen krijgen, aanvullende maatregelen treffen en daarover instructie geven.",
+  uitleg:"Geldt ook voor duo's en voor medewerkers die op locatie werken." },
+{ id:"b15", deck:"bhv", type:"mc",
+  v:"Wie heeft de handreiking geactualiseerd, en in wiens opdracht?",
+  opties:["De Arbeidsinspectie, in opdracht van SZW","Het NIBHV, in opdracht van de SER","TNO, in opdracht van het NEN","De Stichting van de Arbeid, in eigen beheer"],
+  juist:1,
+  uitleg:"SER en Stichting van de Arbeid lieten de handreiking ontwikkelen; het NIBHV actualiseerde haar." },
+{ id:"b16", deck:"bhv", type:"recall",
+  v:"Waaraan stelt de Beleidsregel arbocatalogi (2019) eisen?",
+  antwoord:"Aan de vorm van de arbocatalogus, aan de toetsing ervan, en aan de geldigheidsduur van die toetsing — en daarmee ook aan de bhv-module.",
+  uitleg:"Een arbocatalogus is een afspraak tussen sociale partners; de inspectie toetst hem marginaal." },
+{ id:"b17", deck:"bhv", type:"recall",
+  v:"Wat moet een bedrijf regelen als externe risico's van buurbedrijven een rol spelen, bijvoorbeeld opslag van gevaarlijke stoffen?",
+  antwoord:"Afspraken maken met het bedrijf waar de externe risico's vandaan komen: over de risico's zelf, over de benodigde bhv, en over de samenwerking tussen de bhv'ers van de betrokken bedrijven.",
+  uitleg:"Hetzelfde geldt bij meerdere bedrijven in één gebouw — leg de samenwerkingsafspraken vast." }
+];
+
+/* ------------------------- opslag ------------------------- */
+var SLEUTEL = "mvk:leitner:v1";
+var boxes = {};
+
+function laadBoxes(){
+  try {
+    var ruw = window.localStorage.getItem(SLEUTEL);
+    boxes = ruw ? JSON.parse(ruw) : {};
+    if (typeof boxes !== "object" || boxes === null) boxes = {};
+  } catch (e) { boxes = {}; }
+}
+function bewaarBoxes(){
+  try { window.localStorage.setItem(SLEUTEL, JSON.stringify(boxes)); } catch (e) {}
+}
+function noteer(id, goed){
+  var huidig = boxes[id] || 0;
+  boxes[id] = goed ? Math.min(3, huidig + 1) : 1;
+  bewaarBoxes();
+}
+function wisVoortgang(){
+  boxes = {};
+  try { window.localStorage.removeItem(SLEUTEL); } catch (e) {}
+  render();
+}
+
+/* ------------------------- helpers ------------------------- */
+function el(tag, attrs){
+  var n = document.createElement(tag);
+  if (attrs) {
+    for (var k in attrs) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else if (k === "style") n.setAttribute("style", attrs[k]);
+      else if (k === "onclick") n.addEventListener("click", attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, "");
+      else if (attrs[k] !== false && attrs[k] != null) n.setAttribute(k, attrs[k]);
+    }
+  }
+  for (var i = 2; i < arguments.length; i++) {
+    var c = arguments[i];
+    if (c == null || c === false) continue;
+    if (Array.isArray(c)) { for (var j = 0; j < c.length; j++) if (c[j]) n.appendChild(c[j]); }
+    else if (typeof c === "string") n.appendChild(document.createTextNode(c));
+    else n.appendChild(c);
+  }
+  return n;
+}
+function knop(label, klasse, fn, uit){
+  return el("button", {
+    class: "knop " + klasse + (uit ? " k-uit" : ""),
+    onclick: uit ? function(){} : fn,
+    disabled: uit ? true : false,
+    text: label
+  });
+}
+function schud(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function pad(n){ return (n < 10 ? "0" : "") + n; }
+
+/* ------------------------- state ------------------------- */
+var S = { scherm:"start", set:[], titel:"", i:0, gekozen:null, onthuld:false, fouten:[], goed:0, res:null };
+
+function startRonde(vragen, naam){
+  if (!vragen.length) return;
+  S.scherm = "ronde"; S.set = schud(vragen); S.titel = naam;
+  S.i = 0; S.gekozen = null; S.onthuld = false; S.fouten = []; S.goed = 0;
+  render();
+}
+function volgende(was){
+  var v = S.set[S.i];
+  noteer(v.id, was);
+  if (was) S.goed++; else S.fouten.push(v);
+  if (S.i + 1 >= S.set.length) {
+    S.res = { goed:S.goed, fouten:S.fouten.slice(), totaal:S.set.length };
+    S.scherm = "einde";
+  } else {
+    S.i++; S.gekozen = null; S.onthuld = false;
+  }
+  render();
+}
+
+/* ------------------------- schermen ------------------------- */
+function schermStart(){
+  var wrap = el("div");
+
+  var kop = el("div", { style:"padding:28px 20px 22px" });
+  kop.appendChild(el("div", { class:"eyebrow", text:"MVK · Actieve terugroeping" }));
+  var h1 = el("h1", { class:"disp",
+    style:"font-size:46px;line-height:.92;font-weight:700;margin:10px 0 0;letter-spacing:-.01em" });
+  h1.appendChild(document.createTextNode("Oefentool"));
+  h1.appendChild(el("br"));
+  h1.appendChild(document.createTextNode("drie documenten"));
+  kop.appendChild(h1);
+  kop.appendChild(el("p", { style:"font-size:14.5px;line-height:1.55;color:var(--soft);margin:14px 0 0;max-width:460px",
+    text:"Elke vraag klimt bij een goed antwoord één vakje omhoog en valt bij een fout antwoord terug naar vakje 1. Wat u fout doet, komt vanzelf vaker terug." }));
+
+  var beheerst = VRAGEN.filter(function(v){ return (boxes[v.id] || 0) >= 3; }).length;
+  var teller = el("div", { style:"margin-top:16px;display:flex;align-items:baseline;gap:10px" });
+  var getal = el("span", { class:"mono", style:"font-size:30px;font-weight:600" });
+  getal.appendChild(document.createTextNode(String(beheerst)));
+  getal.appendChild(el("span", { style:"color:var(--line)", text:"/" + VRAGEN.length }));
+  teller.appendChild(getal);
+  teller.appendChild(el("div", { class:"eyebrow", text:"beheerst" }));
+  kop.appendChild(teller);
+  wrap.appendChild(kop);
+
+  var lijst = el("div", { style:"padding:0 20px 20px;display:grid;gap:10px" });
+  Object.keys(DECKS).forEach(function(k){
+    var d = DECKS[k];
+    var vs = VRAGEN.filter(function(v){ return v.deck === k; });
+    var ok = vs.filter(function(v){ return (boxes[v.id] || 0) >= 3; }).length;
+
+    var b = el("button", { class:"deckknop", style:"border-left:8px solid " + d.kleur,
+      onclick: function(){ startRonde(vs, d.naam); } });
+    var rij = el("div", { style:"display:flex;justify-content:space-between;align-items:flex-start;gap:12px" });
+    var links = el("div");
+    links.appendChild(el("div", { class:"eyebrow", text:d.code }));
+    links.appendChild(el("div", { class:"disp", style:"font-size:25px;margin-top:4px", text:d.naam }));
+    links.appendChild(el("div", { style:"font-size:13px;color:var(--soft);margin-top:3px", text:d.sub }));
+    rij.appendChild(links);
+    rij.appendChild(el("div", { class:"mono",
+      style:"font-size:13px;color:var(--soft);white-space:nowrap;padding-top:14px",
+      text: ok + "/" + vs.length }));
+    b.appendChild(rij);
+    var balk = el("div", { style:"margin-top:12px;height:4px;background:#E4E7E7" });
+    balk.appendChild(el("div", { style:"height:100%;transition:width 300ms;width:" + (ok / vs.length * 100) + "%;background:" + d.kleur }));
+    b.appendChild(balk);
+    lijst.appendChild(b);
+  });
+  wrap.appendChild(lijst);
+
+  var zwak = VRAGEN.filter(function(v){ var b = boxes[v.id] || 0; return b > 0 && b < 3; });
+  var acties = el("div", { style:"padding:0 20px 40px;display:grid;gap:10px" });
+  acties.appendChild(knop("Examenronde · 20 vragen door elkaar", "k-primair", function(){
+    startRonde(schud(VRAGEN).slice(0, 20), "Examenronde");
+  }));
+  acties.appendChild(knop(
+    zwak.length ? "Zwakke punten herhalen · " + zwak.length : "Zwakke punten · nog geen",
+    "k-rand",
+    function(){ startRonde(zwak, "Zwakke punten"); },
+    zwak.length === 0
+  ));
+  if (beheerst > 0 || Object.keys(boxes).length > 0) {
+    acties.appendChild(knop("Voortgang wissen", "k-stil", function(){
+      if (window.confirm("Alle voortgang wissen? Dit kan niet ongedaan worden gemaakt.")) wisVoortgang();
+    }));
+  }
+  wrap.appendChild(acties);
+  return wrap;
+}
+
+function schermRonde(){
+  var v = S.set[S.i];
+  var d = DECKS[v.deck];
+  var box = boxes[v.id] || 0;
+  var af = (S.gekozen !== null || S.onthuld);
+  var pct = ((S.i + (af ? 1 : 0)) / S.set.length) * 100;
+
+  var wrap = el("div");
+
+  var band = el("div", { class:"band" });
+  var vul = el("i");
+  band.appendChild(vul);
+  wrap.appendChild(band);
+  requestAnimationFrame(function(){ vul.style.width = pct + "%"; });
+
+  var top = el("div", { style:"padding:16px 20px 0;display:flex;justify-content:space-between;align-items:center;gap:12px" });
+  top.appendChild(el("div", { class:"eyebrow",
+    style:"color:" + (d.kleur === "#F5C400" ? "#9A7B00" : d.kleur),
+    text: d.code + " · " + d.naam }));
+  var rechts = el("div", { style:"display:flex;align-items:center;gap:14px" });
+  var vakjes = el("div", { style:"display:flex;gap:3px", title:"Vakje " + box + " van 3" });
+  for (var n = 1; n <= 3; n++) {
+    vakjes.appendChild(el("div", { style:"width:7px;height:7px;border:1.5px solid var(--soft);background:" + (box >= n ? "var(--ink)" : "transparent") }));
+  }
+  rechts.appendChild(vakjes);
+  rechts.appendChild(el("span", { class:"mono", style:"font-size:12px;color:var(--soft)",
+    text: pad(S.i + 1) + "/" + pad(S.set.length) }));
+  top.appendChild(rechts);
+  wrap.appendChild(top);
+
+  var body = el("div", { style:"padding:14px 20px 26px" });
+  body.appendChild(el("h2", { style:"font-size:20px;line-height:1.35;font-weight:600;margin:0 0 20px", text:v.v }));
+
+  if (v.type === "mc") {
+    var opts = el("div", { style:"display:grid;gap:8px" });
+    v.opties.forEach(function(o, idx){
+      var bg = "var(--card)", br = "var(--line)", kl = "var(--ink)";
+      if (S.gekozen !== null) {
+        if (idx === v.juist) { bg = "#E8F5EC"; br = "var(--green)"; }
+        else if (idx === S.gekozen) { bg = "#FBEAED"; br = "var(--red)"; }
+        else { kl = "var(--soft)"; }
+      }
+      var b = el("button", { class:"optie",
+        style:"background:" + bg + ";border-color:" + br + ";color:" + kl,
+        disabled: S.gekozen !== null,
+        onclick: function(){ if (S.gekozen === null) { S.gekozen = idx; render(); } } });
+      b.appendChild(el("span", { class:"mono", style:"font-size:12px;color:var(--soft);padding-top:2px",
+        text: String.fromCharCode(97 + idx) }));
+      b.appendChild(el("span", { text:o }));
+      opts.appendChild(b);
+    });
+    body.appendChild(opts);
+  }
+
+  if (v.type === "recall" && !S.onthuld) {
+    body.appendChild(el("div", {
+      style:"border:1.5px dashed var(--line);padding:26px 18px;text-align:center;color:var(--soft);font-size:14px;line-height:1.5;background:var(--card)",
+      text:"Formuleer eerst hardop of op papier uw antwoord. Pas daarna onthullen." }));
+    var w1 = el("div", { style:"margin-top:12px" });
+    w1.appendChild(knop("Antwoord tonen", "k-primair", function(){ S.onthuld = true; render(); }));
+    body.appendChild(w1);
+  }
+
+  if (v.type === "recall" && S.onthuld) {
+    var kaart = el("div", { style:"background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);padding:16px 18px" });
+    kaart.appendChild(el("div", { class:"eyebrow", style:"color:var(--green)", text:"Modelantwoord" }));
+    kaart.appendChild(el("p", { style:"margin:9px 0 0;font-size:15.5px;line-height:1.55", text:v.antwoord }));
+    body.appendChild(kaart);
+  }
+
+  if (af && v.uitleg) {
+    var u = el("div", { style:"margin-top:14px;padding:13px 16px;background:#DCE0E1;border-left:4px solid var(--blue)" });
+    u.appendChild(el("div", { class:"eyebrow", style:"color:var(--blue)", text:"Toelichting" }));
+    u.appendChild(el("p", { style:"margin:7px 0 0;font-size:14px;line-height:1.5", text:v.uitleg }));
+    body.appendChild(u);
+  }
+
+  if (S.gekozen !== null) {
+    var w2 = el("div", { style:"margin-top:18px" });
+    w2.appendChild(knop(S.i + 1 >= S.set.length ? "Ronde afsluiten" : "Volgende vraag", "k-primair",
+      function(){ volgende(S.gekozen === v.juist); }));
+    body.appendChild(w2);
+  }
+
+  if (S.onthuld) {
+    var w3 = el("div", { style:"margin-top:18px" });
+    w3.appendChild(el("div", { class:"eyebrow", text:"Beoordeel uzelf eerlijk" }));
+    var paar = el("div", { style:"display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px" });
+    paar.appendChild(knop("Wist ik niet", "k-fout", function(){ volgende(false); }));
+    paar.appendChild(knop("Wist ik", "k-goed", function(){ volgende(true); }));
+    w3.appendChild(paar);
+    body.appendChild(w3);
+  }
+
+  var af2 = el("div", { style:"margin-top:26px;text-align:center" });
+  af2.appendChild(el("button", { class:"link", text:"Ronde afbreken",
+    onclick: function(){ S.scherm = "start"; render(); } }));
+  body.appendChild(af2);
+
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function schermEinde(){
+  var r = S.res;
+  var pct = Math.round(r.goed / r.totaal * 100);
+  var kleur = pct >= 80 ? "var(--green)" : pct >= 55 ? "var(--yellow)" : "var(--red)";
+
+  var wrap = el("div", { style:"padding:30px 20px 40px" });
+  wrap.appendChild(el("div", { class:"eyebrow", text:S.titel + " · afgerond" }));
+  var score = el("div", { style:"display:flex;align-items:baseline;gap:12px;margin-top:12px" });
+  score.appendChild(el("span", { class:"disp",
+    style:"font-size:78px;font-weight:700;line-height:.85;color:" + kleur, text:pct + "%" }));
+  score.appendChild(el("span", { class:"mono", style:"font-size:14px;color:var(--soft)",
+    text: r.goed + " van " + r.totaal }));
+  wrap.appendChild(score);
+
+  if (r.fouten.length) {
+    var blok = el("div", { style:"margin-top:26px" });
+    blok.appendChild(el("div", { class:"eyebrow", style:"color:var(--red)", text:"Terug naar vakje 1" }));
+    var lijst = el("div", { style:"margin-top:10px;display:grid;gap:7px" });
+    r.fouten.forEach(function(f){
+      var k = el("div", { style:"background:var(--card);border:1px solid var(--line);border-left:5px solid var(--red);padding:11px 14px" });
+      k.appendChild(el("div", { style:"font-size:14px;line-height:1.4", text:f.v }));
+      k.appendChild(el("div", { style:"font-size:12.5px;line-height:1.45;color:var(--soft);margin-top:5px",
+        text: f.type === "mc" ? f.opties[f.juist] : f.antwoord }));
+      lijst.appendChild(k);
+    });
+    blok.appendChild(lijst);
+    wrap.appendChild(blok);
+  } else {
+    wrap.appendChild(el("p", { style:"font-size:15px;line-height:1.55;color:var(--soft);margin-top:20px",
+      text:"Alles goed. Kom over drie dagen terug — dan meet u wat er werkelijk is blijven zitten." }));
+  }
+
+  var acties = el("div", { style:"margin-top:28px;display:grid;gap:10px" });
+  if (r.fouten.length) {
+    acties.appendChild(knop("Alleen de fouten opnieuw", "k-primair", function(){
+      startRonde(r.fouten, S.titel);
+    }));
+  }
+  acties.appendChild(knop("Terug naar overzicht", "k-rand", function(){ S.scherm = "start"; render(); }));
+  wrap.appendChild(acties);
+  return wrap;
+}
+
+/* ------------------------- render ------------------------- */
+function render(){
+  var app = document.getElementById("app");
+  app.textContent = "";
+  var scherm = S.scherm === "ronde" ? schermRonde()
+             : S.scherm === "einde" ? schermEinde()
+             : schermStart();
+  app.appendChild(scherm);
+  try { window.scrollTo(0, 0); } catch (e) {}
+}
+
+laadBoxes();
+render();
+</script>
+</body>
+</html>
